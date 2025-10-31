@@ -138,21 +138,38 @@ export const handleStreamProxy: RequestHandler = async (req, res) => {
       res.send(rewrittenBody);
     } else {
       // For binary content (images, video segments, etc.), stream directly
-      // This avoids buffering large files in memory
-      if (response.body) {
-        // Node.js Readable stream - pipe directly to response
-        const readable = response.body as any;
-        readable.on("error", (error: Error) => {
-          console.error("Stream error:", error);
-          if (!res.headersSent) {
-            res.status(500).json({ error: "Stream error: " + error.message });
+      try {
+        if (response.body) {
+          // Convert ReadableStream to Node.js stream
+          const reader = response.body.getReader();
+
+          res.on("error", () => {
+            reader.cancel();
+          });
+
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              res.write(value);
+            }
+          } finally {
+            res.end();
           }
-        });
-        readable.pipe(res);
-      } else {
-        // Fallback for browsers or when body is not a stream
-        const buffer = await response.arrayBuffer();
-        res.send(Buffer.from(buffer));
+        } else {
+          // Fallback: read entire response
+          const buffer = await response.arrayBuffer();
+          res.send(Buffer.from(buffer));
+        }
+      } catch (streamError) {
+        console.error("Stream error:", streamError);
+        if (!res.headersSent) {
+          res.status(500).json({
+            error: streamError instanceof Error ? streamError.message : "Stream error",
+          });
+        } else {
+          res.end();
+        }
       }
     }
   } catch (error) {
