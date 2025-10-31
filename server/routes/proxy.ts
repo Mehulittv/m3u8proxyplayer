@@ -121,9 +121,17 @@ export const handleStreamProxy: RequestHandler = async (req, res) => {
 
       res.send(rewrittenBody);
     } else {
-      // For binary content (images, video segments, etc.), stream as-is
-      const buffer = await response.arrayBuffer();
-      res.send(Buffer.from(buffer));
+      // For binary content (images, video segments, etc.), stream directly
+      // This avoids buffering large files in memory
+      if (response.body) {
+        // Node.js Readable stream - pipe directly to response
+        const readable = response.body as any;
+        readable.pipe(res);
+      } else {
+        // Fallback for browsers or when body is not a stream
+        const buffer = await response.arrayBuffer();
+        res.send(Buffer.from(buffer));
+      }
     }
   } catch (error) {
     console.error("Proxy error:", error);
