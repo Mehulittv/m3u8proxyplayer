@@ -89,7 +89,13 @@ export default function M3u8Player({ url, referer }: M3u8PlayerProps) {
           });
         } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
           // Native HLS support (Safari)
-          video.src = url;
+          const params = new URLSearchParams();
+          params.append("url", url);
+          if (referer) {
+            params.append("referer", referer);
+          }
+          const proxyUrl = `/api/stream-proxy?${params.toString()}`;
+          video.src = proxyUrl;
           setIsLoading(false);
           video.play().catch(() => {
             setIsPlaying(false);
