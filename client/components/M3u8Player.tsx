@@ -75,7 +75,7 @@ export default function M3u8Player({ url, referer }: M3u8PlayerProps) {
               switch (data.type) {
                 case HLS.ErrorTypes.NETWORK_ERROR:
                   setError(
-                    "Network error. Please check your URL or connection."
+                    "Network error. Please check your URL or connection.",
                   );
                   break;
                 case HLS.ErrorTypes.MEDIA_ERROR:
@@ -103,14 +103,12 @@ export default function M3u8Player({ url, referer }: M3u8PlayerProps) {
           setIsPlaying(true);
         } else {
           setError(
-            "Your browser does not support HLS streaming. Please use Chrome, Firefox, Edge, or Safari."
+            "Your browser does not support HLS streaming. Please use Chrome, Firefox, Edge, or Safari.",
           );
           setIsLoading(false);
         }
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load stream"
-        );
+        setError(err instanceof Error ? err.message : "Failed to load stream");
         setIsLoading(false);
       }
     };
@@ -260,7 +258,9 @@ export default function M3u8Player({ url, referer }: M3u8PlayerProps) {
     return () => {
       if (container) {
         container.removeEventListener("mousemove", handleMouseMove);
-        container.removeEventListener("mouseleave", () => setShowControls(true));
+        container.removeEventListener("mouseleave", () =>
+          setShowControls(true),
+        );
       }
       if (controlsTimeoutRef.current) {
         clearTimeout(controlsTimeoutRef.current);

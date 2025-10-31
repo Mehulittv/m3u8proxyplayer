@@ -248,10 +248,10 @@ export default function Index() {
                       requires it
                     </li>
                     <li>Click "Load Stream" or press Enter</li>
-                    <li>Use the player controls to play, pause, and adjust volume</li>
                     <li>
-                      Click the fullscreen button for immersive viewing
+                      Use the player controls to play, pause, and adjust volume
                     </li>
+                    <li>Click the fullscreen button for immersive viewing</li>
                   </ol>
                 </div>
               </Card>

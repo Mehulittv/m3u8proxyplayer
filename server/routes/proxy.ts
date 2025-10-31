@@ -53,7 +53,12 @@ export const handleStreamProxy: RequestHandler = async (req, res) => {
 
     // Set cache headers to reduce unnecessary requests
     // HLS segments are immutable, so cache for a long time
-    if (url.includes(".ts") || url.includes(".m4s") || url.includes(".jpg") || url.includes(".png")) {
+    if (
+      url.includes(".ts") ||
+      url.includes(".m4s") ||
+      url.includes(".jpg") ||
+      url.includes(".png")
+    ) {
       res.set("Cache-Control", "public, max-age=86400, immutable");
     } else if (url.endsWith(".m3u8")) {
       // M3U8 playlists change frequently, cache less
@@ -85,11 +90,17 @@ export const handleStreamProxy: RequestHandler = async (req, res) => {
       // Rewrite relative URLs in the M3U8 playlist to go through the proxy
       // Remove query parameters from the base URL for proper path calculation
       const urlWithoutQuery = url.split("?")[0];
-      const baseUrl = urlWithoutQuery.substring(0, urlWithoutQuery.lastIndexOf("/") + 1);
+      const baseUrl = urlWithoutQuery.substring(
+        0,
+        urlWithoutQuery.lastIndexOf("/") + 1,
+      );
 
       const rewriteUrl = (segmentUrl: string): string => {
         // Make it absolute if it's relative
-        if (!segmentUrl.startsWith("http://") && !segmentUrl.startsWith("https://")) {
+        if (
+          !segmentUrl.startsWith("http://") &&
+          !segmentUrl.startsWith("https://")
+        ) {
           if (segmentUrl.startsWith("/")) {
             segmentUrl = parsedUrl.origin + segmentUrl;
           } else {
@@ -100,7 +111,9 @@ export const handleStreamProxy: RequestHandler = async (req, res) => {
 
         // Rewrite the URL to go through our proxy
         const encodedUrl = encodeURIComponent(segmentUrl);
-        const refererParam = referer ? `&referer=${encodeURIComponent(referer)}` : "";
+        const refererParam = referer
+          ? `&referer=${encodeURIComponent(referer)}`
+          : "";
         return `/api/stream-proxy?url=${encodedUrl}${refererParam}`;
       };
 
@@ -165,7 +178,10 @@ export const handleStreamProxy: RequestHandler = async (req, res) => {
         console.error("Stream error:", streamError);
         if (!res.headersSent) {
           res.status(500).json({
-            error: streamError instanceof Error ? streamError.message : "Stream error",
+            error:
+              streamError instanceof Error
+                ? streamError.message
+                : "Stream error",
           });
         } else {
           res.end();
@@ -175,8 +191,7 @@ export const handleStreamProxy: RequestHandler = async (req, res) => {
   } catch (error) {
     console.error("Proxy error:", error);
     res.status(500).json({
-      error:
-        error instanceof Error ? error.message : "Internal server error",
+      error: error instanceof Error ? error.message : "Internal server error",
     });
   }
 };
