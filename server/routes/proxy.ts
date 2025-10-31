@@ -65,7 +65,9 @@ export const handleStreamProxy: RequestHandler = async (req, res) => {
         url.endsWith(".m3u8")) {
 
       // Rewrite relative URLs in the M3U8 playlist to go through the proxy
-      const baseUrl = url.substring(0, url.lastIndexOf("/") + 1);
+      // Remove query parameters from the base URL for proper path calculation
+      const urlWithoutQuery = url.split("?")[0];
+      const baseUrl = urlWithoutQuery.substring(0, urlWithoutQuery.lastIndexOf("/") + 1);
 
       const rewrittenBody = body
         .split("\n")
@@ -79,12 +81,18 @@ export const handleStreamProxy: RequestHandler = async (req, res) => {
           if (!line.startsWith("#")) {
             let segmentUrl = line.trim();
 
+            // Skip empty lines
+            if (!segmentUrl) {
+              return line;
+            }
+
             // Make it absolute if it's relative
             if (!segmentUrl.startsWith("http://") && !segmentUrl.startsWith("https://")) {
               if (segmentUrl.startsWith("/")) {
                 segmentUrl = parsedUrl.origin + segmentUrl;
               } else {
-                segmentUrl = baseUrl + segmentUrl;
+                // Handle relative paths (e.g., "3257_000.jpg" or "../segment.m3u8")
+                segmentUrl = new URL(segmentUrl, baseUrl).href;
               }
             }
 
