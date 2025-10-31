@@ -56,13 +56,15 @@ export const handleStreamProxy: RequestHandler = async (req, res) => {
       res.set("Content-Type", contentType);
     }
 
-    // Get the response body
-    const body = await response.text();
+    // Check if it's an M3U8 playlist
+    const isM3u8 =
+      contentType?.includes("application/vnd.apple.mpegurl") ||
+      contentType?.includes("application/x-mpegURL") ||
+      url.endsWith(".m3u8");
 
-    // If it's an M3U8 playlist, rewrite URLs to go through the proxy
-    if (contentType?.includes("application/vnd.apple.mpegurl") ||
-        contentType?.includes("application/x-mpegURL") ||
-        url.endsWith(".m3u8")) {
+    if (isM3u8) {
+      // For M3U8, we need to read as text to rewrite URLs
+      const body = await response.text();
 
       // Rewrite relative URLs in the M3U8 playlist to go through the proxy
       // Remove query parameters from the base URL for proper path calculation
@@ -108,8 +110,9 @@ export const handleStreamProxy: RequestHandler = async (req, res) => {
 
       res.send(rewrittenBody);
     } else {
-      // For non-M3U8 content, just pass through
-      res.send(body);
+      // For binary content (images, video segments, etc.), stream as-is
+      const buffer = await response.arrayBuffer();
+      res.send(Buffer.from(buffer));
     }
   } catch (error) {
     console.error("Proxy error:", error);
