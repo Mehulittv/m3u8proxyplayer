@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
+import { handleStreamProxy } from "./routes/proxy";
 
 export function createServer() {
   const app = express();
@@ -18,6 +19,9 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+
+  // Stream proxy endpoint for handling CORS
+  app.get("/api/stream-proxy", handleStreamProxy);
 
   return app;
 }
