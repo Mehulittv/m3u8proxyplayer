@@ -50,7 +50,23 @@ export const handleStreamProxy: RequestHandler = async (req, res) => {
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "GET, OPTIONS");
     res.set("Access-Control-Allow-Headers", "Content-Type");
-    res.set("Cache-Control", "max-age=3600");
+
+    // Set cache headers to reduce unnecessary requests
+    // HLS segments are immutable, so cache for a long time
+    if (url.includes(".ts") || url.includes(".m4s") || url.includes(".jpg") || url.includes(".png")) {
+      res.set("Cache-Control", "public, max-age=86400, immutable");
+    } else if (url.endsWith(".m3u8")) {
+      // M3U8 playlists change frequently, cache less
+      res.set("Cache-Control", "public, max-age=10");
+    } else {
+      res.set("Cache-Control", "public, max-age=3600");
+    }
+
+    // Set content length if available
+    const contentLength = response.headers.get("content-length");
+    if (contentLength) {
+      res.set("Content-Length", contentLength);
+    }
 
     if (contentType) {
       res.set("Content-Type", contentType);
