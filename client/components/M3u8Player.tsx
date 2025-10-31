@@ -46,17 +46,19 @@ export default function M3u8Player({ url, referer }: M3u8PlayerProps) {
           hlsRef.current.destroy();
         }
 
+        // Build proxy URL with encoded parameters
+        const params = new URLSearchParams();
+        params.append("url", url);
+        if (referer) {
+          params.append("referer", referer);
+        }
+        const proxyUrl = `/api/stream-proxy?${params.toString()}`;
+
         if (HLS.isSupported()) {
-          const hls = new HLS({
-            xhrSetup: (xhr: XMLHttpRequest) => {
-              if (referer) {
-                xhr.setRequestHeader("Referer", referer);
-              }
-            },
-          });
+          const hls = new HLS();
 
           hlsRef.current = hls;
-          hls.loadSource(url);
+          hls.loadSource(proxyUrl);
           hls.attachMedia(video);
 
           hls.on(HLS.Events.MANIFEST_PARSED, () => {
