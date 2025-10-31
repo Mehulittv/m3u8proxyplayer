@@ -71,40 +71,51 @@ export const handleStreamProxy: RequestHandler = async (req, res) => {
       const urlWithoutQuery = url.split("?")[0];
       const baseUrl = urlWithoutQuery.substring(0, urlWithoutQuery.lastIndexOf("/") + 1);
 
+      const rewriteUrl = (segmentUrl: string): string => {
+        // Make it absolute if it's relative
+        if (!segmentUrl.startsWith("http://") && !segmentUrl.startsWith("https://")) {
+          if (segmentUrl.startsWith("/")) {
+            segmentUrl = parsedUrl.origin + segmentUrl;
+          } else {
+            // Handle relative paths (e.g., "3257_000.jpg" or "../segment.m3u8")
+            segmentUrl = new URL(segmentUrl, baseUrl).href;
+          }
+        }
+
+        // Rewrite the URL to go through our proxy
+        const encodedUrl = encodeURIComponent(segmentUrl);
+        const refererParam = referer ? `&referer=${encodeURIComponent(referer)}` : "";
+        return `/api/stream-proxy?url=${encodedUrl}${refererParam}`;
+      };
+
       const rewrittenBody = body
         .split("\n")
         .map((line) => {
-          // Skip comments and empty lines
-          if (line.startsWith("#") || line.trim() === "") {
+          // Handle empty lines
+          if (line.trim() === "") {
             return line;
           }
 
-          // If it's a URL line (not a comment)
-          if (!line.startsWith("#")) {
-            let segmentUrl = line.trim();
-
-            // Skip empty lines
-            if (!segmentUrl) {
-              return line;
-            }
-
-            // Make it absolute if it's relative
-            if (!segmentUrl.startsWith("http://") && !segmentUrl.startsWith("https://")) {
-              if (segmentUrl.startsWith("/")) {
-                segmentUrl = parsedUrl.origin + segmentUrl;
-              } else {
-                // Handle relative paths (e.g., "3257_000.jpg" or "../segment.m3u8")
-                segmentUrl = new URL(segmentUrl, baseUrl).href;
-              }
-            }
-
-            // Rewrite the URL to go through our proxy
-            const encodedUrl = encodeURIComponent(segmentUrl);
-            const refererParam = referer ? `&referer=${encodeURIComponent(referer)}` : "";
-            return `/api/stream-proxy?url=${encodedUrl}${refererParam}`;
+          // Handle lines with URI attributes (e.g., #EXT-X-MEDIA:...URI="...")
+          if (line.includes('URI="')) {
+            return line.replace(/URI="([^"]+)"/g, (match, url) => {
+              return `URI="${rewriteUrl(url)}"`;
+            });
           }
 
-          return line;
+          // Handle comment lines - pass through
+          if (line.startsWith("#")) {
+            return line;
+          }
+
+          // Handle segment/playlist URLs (lines that don't start with #)
+          let segmentUrl = line.trim();
+
+          if (!segmentUrl) {
+            return line;
+          }
+
+          return rewriteUrl(segmentUrl);
         })
         .join("\n");
 
